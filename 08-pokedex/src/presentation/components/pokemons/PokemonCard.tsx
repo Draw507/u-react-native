@@ -11,7 +11,6 @@ interface Props {
 
 export const PokemonCard = ({pokemon}: Props) => {
   const navigation = useNavigation<NavigationProp<RootStackParams>>();
-
   return (
     <Pressable
       style={{flex: 1}}
