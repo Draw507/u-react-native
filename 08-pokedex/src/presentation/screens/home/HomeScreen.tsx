@@ -1,4 +1,4 @@
-import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
+import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 import React from 'react';
 import {FlatList, StyleSheet, View} from 'react-native';
 import {getPokemons} from '../../../actions/pokemons/get-pokemons';
@@ -17,12 +17,22 @@ export const HomeScreen = () => {
   //   staleTime: 1000 * 60 * 5,
   // });
 
+  const queryClient = useQueryClient();
+
   const {isLoading, data, fetchNextPage} = useInfiniteQuery({
     queryKey: ['pokemons', 'infinite'],
     initialPageParam: 0,
-    queryFn: params => getPokemons(params.pageParam),
-    getNextPageParam: (lastPage, pages) => pages.length,
     staleTime: 1000 * 60 * 5,
+    queryFn: async params => {
+      const pokemons = await getPokemons(params.pageParam);
+
+      pokemons.forEach(pokemon => {
+        queryClient.setQueryData(['pokemon', pokemon.id], pokemon);
+      });
+
+      return pokemons;
+    },
+    getNextPageParam: (lastPage, pages) => pages.length,
   });
 
   return (
