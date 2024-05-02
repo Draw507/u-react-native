@@ -1,4 +1,11 @@
-import {FlatList, Image, ScrollView, StyleSheet, View} from 'react-native';
+import {
+  FlatList,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import {Button, Chip, Text} from 'react-native-paper';
 import {RootStackParams} from '../../../navigator/StackNavigator';
 import {useQuery} from '@tanstack/react-query';
@@ -11,7 +18,10 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useContext} from 'react';
 import {ThemeContext} from '../../context/ThemeContext';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
+// import axios from 'axios';
 import {blobStorageApi} from '../../../config/api/blobStorage';
+import * as RNFS from '@dr.pogodin/react-native-fs';
+// import RNFetchBlob from 'rn-fetch-blob';
 
 // /customers/00000003119029/Health/Policies/5376153/Reimbursements/0138f9f5-2137-43b4-ada3-35df155ba08b/demo.jpg?sv=2023-01-03&st=2024-03-31T01%3A16%3A26Z&se=2025-01-01T01%3A16%3A00Z&sr=b&sp=rcw&sig=o9CTtmMZ5DL%2FmQ4Q8uvplGujrDVSa445pEjI5lWJXdw%3D
 class CameraAdapter {
@@ -39,7 +49,13 @@ class CameraAdapter {
   }
 
   static async uploadImage(image: string) {
+    console.log('🚀 ~ CameraAdapter ~ uploadImage ~ image:', image);
     const formData = new FormData();
+    // formData.append('image', {
+    //   name: 'demo.jpg',
+    //   type: 'image/jpeg',
+    //   uri: image,
+    // });
     formData.append('file', {
       name: 'demo.jpg',
       type: 'image/jpeg',
@@ -47,20 +63,91 @@ class CameraAdapter {
     });
 
     try {
-      const {data} = await blobStorageApi.put(
-        `/customers/00000003119029/Health/Policies/5376153/Reimbursements/0138f9f5-2137-43b4-ada3-35df155ba08b/demo.jpg?sv=2023-01-03&st=2024-03-31T01%3A16%3A26Z&se=2025-01-01T01%3A16%3A00Z&sr=b&sp=rcw&sig=o9CTtmMZ5DL%2FmQ4Q8uvplGujrDVSa445pEjI5lWJXdw%3D`,
-        formData,
+      const route = RNFS.DocumentDirectoryPath;
+      console.log('🚀 ~ CameraAdapter ~ uploadImage ~ route:', route);
+      var files = [
         {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'x-ms-blob-type': 'BlockBlob',
-          },
+          name: 'demo',
+          filename: 'demo.jpg',
+          filepath: image.replace('file://', ''), //DocumentDirectoryPath + '/file.jpg',
+          filetype: 'image/jpeg',
         },
-      );
-      console.log(data);
+      ];
+      RNFS.uploadFiles({
+        binaryStreamOnly: true,
+        toUrl:
+          'https://nassadigitalfilesdev2.blob.core.windows.net/customers/00000003119029/Health/Policies/5376153/Reimbursements/0138f9f5-2137-43b4-ada3-35df155ba08b/demo.jpg?sv=2019-07-07&st=2024-04-30T22%3A01%3A36Z&se=2024-05-01T22%3A16%3A36Z&sr=b&sp=rwd&sig=Xq2IE%2Ffa1ufY3Q6T%2FdtZVpqBzb7HoE27m30DqzSFqtA%3D',
+        files: files,
+        method: 'PUT',
+        headers: {
+          Accept: 'application/json',
+          'x-ms-blob-type': 'BlockBlob',
+          'x-ms-blob-content-type': 'image/jpeg',
+        },
+      })
+        .promise.then(response => {
+          console.log(
+            '🚀 ~ CameraAdapter ~ uploadImage ~ response.statusCode:',
+            response.statusCode,
+          );
+          if (response.statusCode == 200) {
+            console.log('FILES UPLOADED!'); // response.statusCode, response.headers, response.body
+          } else {
+            console.log('SERVER ERROR');
+          }
+        })
+        .catch(err => {
+          if (err.description === 'cancelled') {
+            // cancelled by user
+          }
+          console.log(err);
+        });
+
+      // const response = await fetch(
+      //   'https://nassadigitalfilesdev2.blob.core.windows.net/customers/00000003119029/Health/Policies/5376153/Reimbursements/0138f9f5-2137-43b4-ada3-35df155ba08b/demo.jpg?sv=2019-07-07&st=2024-04-30T20%3A45%3A11Z&se=2024-05-01T21%3A00%3A11Z&sr=b&sp=rwd&sig=WWa8L%2BdRCzlAj0eq82AHJvNGFBRKgrcg6T6aMsCVw60%3D',
+      //   {
+      //     method: 'PUT',
+      //     headers: {
+      //       'Content-Type': 'multipart/form-data',
+      //       'x-ms-blob-type': 'BlockBlob',
+      //       'x-ms-blob-content-type': 'image/jpeg',
+      //     },
+      //     body: formData,
+      //   },
+      // );
+      // const {data} = await blobStorageApi.put(
+      //   `/customers/00000003119029/Health/Policies/5376153/Reimbursements/0138f9f5-2137-43b4-ada3-35df155ba08b/demo.jpg?sv=2019-07-07&st=2024-04-30T20%3A45%3A11Z&se=2024-05-01T21%3A00%3A11Z&sr=b&sp=rwd&sig=WWa8L%2BdRCzlAj0eq82AHJvNGFBRKgrcg6T6aMsCVw60%3D`,
+      //   formData,
+      //   {
+      //     headers: {
+      //       // 'content-type': 'application/octet-stream',
+      //       'content-type': 'multipart/form-data',
+      //       'x-ms-blob-type': 'BlockBlob',
+      //       'x-ms-blob-content-type': 'image/jpeg',
+      //     },
+      //   },
+      // );
+      // console.log(data);
+
+      // const localUri =
+      //   Platform.OS === 'ios' ? image.replace('file://', '/') : image;
+      // await RNFetchBlob.fetch(
+      //   'PUT',
+      //   `https://nassadigitalfilesdev2.blob.core.windows.net/customers/00000003119029/Health/Policies/5709573/Reimbursements/637d8606-ccf7-422d-8c6c-edb19701d774/recipes_2.jpg?sv=2019-07-07&st=2024-04-18T00%3A01%3A57Z&se=2024-04-19T00%3A16%3A57Z&sr=b&sp=rwd&sig=ZhxKsPCN98yVTe6yxPc3dWQ0lE6lc4qVRAF1po%2BOQXg%3D`,
+      //   {
+      //     'x-ms-blob-type': 'BlockBlob',
+      //     'content-type': 'application/octet-stream',
+      //     'x-ms-blob-content-type': 'image/jpeg',
+      //   },
+      //   RNFetchBlob.wrap(localUri),
+      // );
     } catch (error) {
       console.log(JSON.stringify(error));
     }
+    console.log(
+      '🚀 ~ CameraAdapter ~ uploadImage ~ RNFS.DocumentDirectoryPath:',
+      RNFS.DocumentDirectoryPath,
+    );
   }
 }
 
@@ -141,9 +228,9 @@ export const PokemonScreen = ({navigation, route}: Props) => {
       <Button
         mode="contained"
         onPress={async () => {
-          const photos = await CameraAdapter.getPicturesFromLibrary();
+          const photos = await CameraAdapter.takePicture();
           console.log(photos);
-          await CameraAdapter.uploadImage(photos[0]);
+          await CameraAdapter.uploadImage(photos![0]!);
         }}>
         Image
       </Button>

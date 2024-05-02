@@ -5,6 +5,7 @@
   "scripts": {
     "android": "react-native run-android",
     "ios": "react-native run-ios",
+    "start:ios": "npm run ios -- --simulator='iPhone 15 Pro Max (71A3E142-E4BB-4B2B-8BC7-45E88337DF25)'",
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest"
